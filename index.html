@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxhabitat - AI Concierge</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Lora:wght@400;500&display=swap');
+
+        :root {
+            --gold: #c5a059;
+            --dark: #121212;
+            --dark-surface: #1e1e1e;
+            --light: #f9f9f9;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Lora', serif;
+            background-color: #000;
+        }
+
+        /* Background Iframe */
+        .bg-iframe {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            z-index: 1;
+        }
+
+        /* Chat Widget Container */
+        #chat-widget {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        /* Chat Window */
+        #chat-window {
+            width: 380px;
+            height: 550px;
+            background-color: var(--dark);
+            border: 1px solid rgba(197, 160, 89, 0.5);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            pointer-events: none;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        #chat-window.open {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            background: linear-gradient(135deg, var(--dark) 0%, #1a1a1a 100%);
+            color: var(--gold);
+            padding: 24px;
+            text-align: center;
+            border-bottom: 1px solid rgba(197, 160, 89, 0.2);
+            font-family: 'Playfair Display', serif;
+            position: relative;
+        }
+        
+        .chat-header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 1px;
+            background-color: var(--gold);
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.4rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .chat-header p {
+            margin: 8px 0 0;
+            font-size: 0.85rem;
+            color: #aaa;
+            font-style: italic;
+            letter-spacing: 0.5px;
+        }
+
+        /* Chat Body */
+        .chat-body {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background-color: rgba(18, 18, 18, 0.95);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Messages */
+        .message {
+            max-width: 82%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            animation: slideIn 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            opacity: 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot {
+            align-self: flex-start;
+            background-color: var(--dark-surface);
+            color: var(--light);
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            border-bottom-left-radius: 2px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #d4af37 0%, var(--gold) 100%);
+            color: #000;
+            border-bottom-right-radius: 2px;
+            font-weight: 500;
+        }
+
+        /* Chat Input Area */
+        .chat-input-container {
+            display: flex;
+            padding: 20px;
+            background-color: var(--dark);
+            border-top: 1px solid rgba(197, 160, 89, 0.2);
+            align-items: center;
+        }
+
+        .chat-input-container input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--light);
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            padding: 10px 5px;
+            outline: none;
+        }
+
+        .chat-input-container input::placeholder {
+            color: #666;
+            font-style: italic;
+        }
+
+        .chat-input-container button {
+            background-color: transparent;
+            color: var(--gold);
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .chat-input-container button:hover {
+            color: #e5c57f;
+            transform: translateX(2px);
+        }
+
+        /* Chat Toggle Button */
+        #chat-toggle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--dark) 0%, #1a1a1a 100%);
+            border: 2px solid var(--gold);
+            color: var(--gold);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative;
+        }
+
+        #chat-toggle:hover {
+            transform: scale(1.08) translateY(-5px);
+            box-shadow: 0 15px 40px rgba(197, 160, 89, 0.4);
+        }
+        
+        #chat-toggle::after {
+            content: '';
+            position: absolute;
+            top: -6px; left: -6px; right: -6px; bottom: -6px;
+            border-radius: 50%;
+            border: 1px solid rgba(197, 160, 89, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 1; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+
+        #chat-toggle svg {
+            width: 32px;
+            height: 32px;
+            fill: currentColor;
+            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        
+        #chat-toggle.open {
+            background: var(--gold);
+            color: var(--dark);
+        }
+
+        #chat-toggle.open::after {
+            display: none;
+        }
+
+        #chat-toggle.open svg.chat-icon {
+            transform: rotate(90deg) scale(0);
+            opacity: 0;
+            position: absolute;
+        }
+        
+        #chat-toggle .close-icon {
+            position: absolute;
+            opacity: 0;
+            transform: rotate(-90deg) scale(0);
+        }
+
+        #chat-toggle.open .close-icon {
+            opacity: 1;
+            transform: rotate(0) scale(1);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(197, 160, 89, 0.5); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gold); 
+        }
+
+        /* Typing indicator */
+        .typing {
+            display: flex;
+            gap: 6px;
+            padding: 16px 20px;
+            background-color: var(--dark-surface);
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            border-radius: 12px;
+            border-bottom-left-radius: 2px;
+            width: fit-content;
+            align-self: flex-start;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .typing span {
+            width: 8px;
+            height: 8px;
+            background-color: var(--gold);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+            opacity: 0.8;
+        }
+
+        .typing span:nth-child(1) { animation-delay: -0.32s; }
+        .typing span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Luxhabitat Iframe -->
+    <iframe src="https://www.luxhabitat.ae/" class="bg-iframe" title="Luxhabitat Background"></iframe>
+
+    <!-- AI Chat Widget -->
+    <div id="chat-widget">
+        
+        <div id="chat-window">
+            <div class="chat-header">
+                <h3>Luxhabitat</h3>
+                <p>Private AI Concierge</p>
+            </div>
+            <div class="chat-body" id="chat-body">
+                <!-- Messages will appear here -->
+                <div class="typing" id="typing-indicator">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Type your inquiry here..." autocomplete="off">
+                <button id="send-btn">Send</button>
+            </div>
+        </div>
+
+        <div id="chat-toggle">
+            <!-- Chat Bubble Icon -->
+            <svg class="chat-icon" viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+            </svg>
+            <!-- Close Icon -->
+            <svg class="close-icon" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatToggle = document.getElementById('chat-toggle');
+            const chatWindow = document.getElementById('chat-window');
+            const chatBody = document.getElementById('chat-body');
+            const chatInput = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-btn');
+            const typingIndicator = document.getElementById('typing-indicator');
+
+            let isFirstMessage = true;
+
+            // Toggle Chat
+            chatToggle.addEventListener('click', () => {
+                chatToggle.classList.toggle('open');
+                chatWindow.classList.toggle('open');
+                if (chatWindow.classList.contains('open')) {
+                    setTimeout(() => chatInput.focus(), 100);
+                }
+            });
+
+            function addMessage(text, sender) {
+                const msgDiv = document.createElement('div');
+                msgDiv.classList.add('message', sender);
+                msgDiv.textContent = text;
+                
+                // Insert before typing indicator
+                chatBody.insertBefore(msgDiv, typingIndicator);
+                scrollToBottom();
+            }
+
+            function scrollToBottom() {
+                setTimeout(() => {
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                }, 50);
+            }
+
+            function handleSend() {
+                const text = chatInput.value.trim();
+                if (!text) return;
+
+                // Add User Message
+                addMessage(text, 'user');
+                chatInput.value = '';
+
+                // Show typing indicator
+                typingIndicator.style.display = 'flex';
+                scrollToBottom();
+
+                // Simulate AI Response Time
+                setTimeout(() => {
+                    typingIndicator.style.display = 'none';
+                    if (isFirstMessage) {
+                        addMessage('Welcome to Luxhabitat. Are you looking for a villa in Palm Jumeirah or a penthouse in Downtown?', 'bot');
+                        isFirstMessage = false;
+                    } else {
+                        addMessage('An esteemed luxury property consultant will be in touch shortly to assist you with your exquisite requirements.', 'bot');
+                    }
+                }, 1500);
+            }
+
+            sendBtn.addEventListener('click', handleSend);
+            
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSend();
+                }
+            });
+
+            // Initial open animation for engaging user
+            setTimeout(() => {
+                chatToggle.click();
+            }, 1200);
+        });
+    </script>
+</body>
+</html>
