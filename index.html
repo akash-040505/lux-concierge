@@ -361,6 +361,44 @@
             const sendBtn = document.getElementById('send-btn');
             const typingIndicator = document.getElementById('typing-indicator');
 
+            const propertyInventory = [
+                {
+                    name: "Luxury Mansion",
+                    location: "Emirates Hills",
+                    price: "135,000,000 AED",
+                    features: "6 Beds, Lake View, Cinema",
+                    keywords: ["mansion", "emirates hills"]
+                },
+                {
+                    name: "Signature Villa",
+                    location: "Palm Jumeirah",
+                    price: "95,000,000 AED",
+                    features: "5 Beds, Beachfront, Infinity Pool",
+                    keywords: ["signature villa", "villa", "palm", "jumeirah"]
+                },
+                {
+                    name: "Sky Penthouse",
+                    location: "Downtown Dubai",
+                    price: "45,000,000 AED",
+                    features: "4 Beds, Burj Khalifa View",
+                    keywords: ["sky penthouse", "penthouse", "downtown", "burj khalifa"]
+                },
+                {
+                    name: "Luxury Apartment",
+                    location: "Dubai Marina",
+                    price: "12,500,000 AED",
+                    features: "3 Beds, Waterfront",
+                    keywords: ["apartment", "dubai marina", "marina", "waterfront"]
+                },
+                {
+                    name: "Serenia Residence",
+                    location: "Palm Jumeirah",
+                    price: "22,000,000 AED",
+                    features: "4 Beds, Resort Living",
+                    keywords: ["serenia", "residence", "resort"]
+                }
+            ];
+
             let isFirstMessage = true;
 
             // Toggle Chat
@@ -388,7 +426,7 @@
                 }, 50);
             }
 
-            function handleSend() {
+            function handleMessage() {
                 const text = chatInput.value.trim();
                 if (!text) return;
 
@@ -403,20 +441,33 @@
                 // Simulate AI Response Time
                 setTimeout(() => {
                     typingIndicator.style.display = 'none';
-                    if (isFirstMessage) {
-                        addMessage('Welcome to Luxhabitat. Are you looking for a villa in Palm Jumeirah or a penthouse in Downtown?', 'bot');
+                    
+                    const lowerText = text.toLowerCase();
+                    let response = '';
+
+                    const matchedProperty = propertyInventory.find(prop => 
+                        prop.keywords.some(keyword => lowerText.includes(keyword))
+                    );
+
+                    if (matchedProperty) {
+                        response = `We have a magnificent ${matchedProperty.name} in ${matchedProperty.location}. It offers ${matchedProperty.features} and is available for ${matchedProperty.price}. Would you like to schedule a private viewing?`;
+                        isFirstMessage = false;
+                    } else if (isFirstMessage) {
+                        response = 'Welcome to Luxhabitat. Are you looking for a villa in Palm Jumeirah or a penthouse in Downtown?';
                         isFirstMessage = false;
                     } else {
-                        addMessage('An esteemed luxury property consultant will be in touch shortly to assist you with your exquisite requirements.', 'bot');
+                        response = 'An esteemed luxury property consultant will be in touch shortly to assist you with your exquisite requirements.';
                     }
+
+                    addMessage(response, 'bot');
                 }, 1500);
             }
 
-            sendBtn.addEventListener('click', handleSend);
+            sendBtn.addEventListener('click', handleMessage);
             
             chatInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
-                    handleSend();
+                    handleMessage();
                 }
             });
 
